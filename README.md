@@ -12,7 +12,7 @@ poetry install
 poetry run rubin
 
 # Or via Docker
-docker run --rm -it amamparo/rubin:latest
+docker run --rm -it aaronmamparo/rubin:latest
 ```
 
 ## Audio Setup
@@ -92,8 +92,8 @@ Add Rubin to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "rubin": {
-      "command": "poetry",
-      "args": ["--directory", "/path/to/rubin", "run", "rubin"],
+      "command": "/absolute/path/to/poetry",
+      "args": ["--directory", "/absolute/path/to/rubin", "run", "rubin"],
       "env": {
         "RUBIN_AUDIO_DEVICE": "BlackHole 2ch"
       }
@@ -102,14 +102,16 @@ Add Rubin to your `claude_desktop_config.json`:
 }
 ```
 
-Or if using Docker:
+Find your Poetry path with `which poetry`. Both paths must be absolute — Claude Desktop does not inherit your shell's PATH.
+
+Or if using Docker (build locally or pull from Docker Hub):
 
 ```json
 {
   "mcpServers": {
     "rubin": {
-      "command": "docker",
-      "args": ["run", "--rm", "-i", "amamparo/rubin:latest"]
+      "command": "/usr/local/bin/docker",
+      "args": ["run", "--rm", "-i", "aaronmamparo/rubin:latest"]
     }
   }
 }
