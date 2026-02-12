@@ -88,6 +88,30 @@ Add Rubin to your `claude_desktop_config.json`:
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
+### Option A: Run from GitHub (No Clone Required)
+
+The simplest setup — runs Rubin directly from the repo using `uvx`:
+
+```json
+{
+  "mcpServers": {
+    "rubin": {
+      "command": "/absolute/path/to/uvx",
+      "args": ["--from", "git+https://github.com/aaronmamparo/rubin", "rubin"],
+      "env": {
+        "RUBIN_AUDIO_DEVICE": "BlackHole 2ch"
+      }
+    }
+  }
+}
+```
+
+Find your uvx path with `which uvx`. The path must be absolute — Claude Desktop does not inherit your shell's PATH.
+
+### Option B: Local Clone (Poetry)
+
+If you've cloned the repo locally:
+
 ```json
 {
   "mcpServers": {
@@ -102,16 +126,18 @@ Add Rubin to your `claude_desktop_config.json`:
 }
 ```
 
-Find your Poetry path with `which poetry`. Both paths must be absolute — Claude Desktop does not inherit your shell's PATH.
+Find your Poetry path with `which poetry`. Both paths must be absolute.
 
-Or if using Docker (build locally or pull from Docker Hub):
+### Option C: Docker (TCP/stdin only)
+
+> **Note:** Docker containers cannot access host audio devices (BlackHole / VB-Audio). Use Option A or B for system audio capture.
 
 ```json
 {
   "mcpServers": {
     "rubin": {
       "command": "/usr/local/bin/docker",
-      "args": ["run", "--rm", "-i", "aaronmamparo/rubin:latest"]
+      "args": ["run", "--rm", "-i", "-e", "RUBIN_AUDIO_MODE=tcp", "aaronmamparo/rubin:latest"]
     }
   }
 }
