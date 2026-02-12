@@ -34,12 +34,29 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Ensure Docker Hub repo exists
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          curl -sf -X POST "https://hub.docker.com/v2/repositories/" \
-            -H "Authorization: Bearer $(curl -sf -X POST 'https://hub.docker.com/v2/users/login/' -H 'Content-Type: application/json' -d "{\"username\":\"${{ secrets.DOCKERHUB_USERNAME }}\",\"password\":\"${{ secrets.DOCKERHUB_TOKEN }}\"}" | jq -r .token)" \
-            -H "Content-Type: application/json" \
-            -d '{"namespace":"amamparo","name":"rubin","is_private":false}' \
-          || true
+          TOKEN=$(curl -s -X POST 'https://hub.docker.com/v2/users/login/' \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"${DOCKERHUB_USERNAME}\",\"password\":\"${DOCKERHUB_TOKEN}\"}" \
+            | jq -r .token)
+          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
+            echo "::warning::Could not authenticate with Docker Hub API — repo may need to be created manually"
+          else
+            STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'https://hub.docker.com/v2/repositories/' \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H 'Content-Type: application/json' \
+              -d "{\"namespace\":\"${DOCKERHUB_USERNAME}\",\"name\":\"rubin\",\"is_private\":false}")
+            if [ "$STATUS" = "201" ]; then
+              echo "Created Docker Hub repo ${DOCKERHUB_USERNAME}/rubin"
+            elif [ "$STATUS" = "409" ]; then
+              echo "Docker Hub repo ${DOCKERHUB_USERNAME}/rubin already exists"
+            else
+              echo "::warning::Docker Hub repo creation returned HTTP ${STATUS} — repo may need to be created manually"
+            fi
+          fi
 
       - name: Build and push
         uses: docker/build-push-action@v6
