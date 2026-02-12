@@ -81,6 +81,42 @@ ffmpeg -i your_track.wav -f f32le -ac 2 -ar 44100 - | \
   poetry run rubin --audio stdin
 ```
 
+## Claude Desktop Setup
+
+Add Rubin to your `claude_desktop_config.json`:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "rubin": {
+      "command": "poetry",
+      "args": ["--directory", "/path/to/rubin", "run", "rubin"],
+      "env": {
+        "RUBIN_AUDIO_DEVICE": "BlackHole 2ch"
+      }
+    }
+  }
+}
+```
+
+Or if using Docker:
+
+```json
+{
+  "mcpServers": {
+    "rubin": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "amamparo/rubin:latest"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop after saving. You should see the Rubin tools (hammer icon) in the input bar. Claude can then evaluate your mix, capture snapshots, and suggest adjustments — just ask it to listen.
+
 ## MCP Tools
 
 | Tool | Description |
