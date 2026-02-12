@@ -1,0 +1,17 @@
+{
+  "name": "jazz",
+  "description": "Warm, natural jazz — acoustic instrument clarity, wide dynamic range, open stereo, gentle high-end sparkle.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.001, "high": 0.03 },
+    "bass": { "low": 0.008, "high": 0.08 },
+    "low_mid": { "low": 0.006, "high": 0.07 },
+    "mid": { "low": 0.005, "high": 0.07 },
+    "upper_mid": { "low": 0.003, "high": 0.05 },
+    "presence": { "low": 0.002, "high": 0.04 },
+    "brilliance": { "low": 0.001, "high": 0.025 }
+  },
+  "dynamic_range_db": { "low": 14, "high": 40 },
+  "brightness": { "low": 1500, "high": 4000 },
+  "stereo_width": { "low": 0.12, "high": 0.45 },
+  "rms_mean": { "low": 0.02, "high": 0.15 }
+}

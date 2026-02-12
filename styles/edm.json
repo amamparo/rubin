@@ -1,0 +1,17 @@
+{
+  "name": "edm",
+  "description": "Festival-ready EDM — massive sub-bass drops, bright leads, heavy sidechain compression, wide stereo fills.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.01, "high": 0.12 },
+    "bass": { "low": 0.01, "high": 0.1 },
+    "low_mid": { "low": 0.004, "high": 0.06 },
+    "mid": { "low": 0.004, "high": 0.06 },
+    "upper_mid": { "low": 0.005, "high": 0.07 },
+    "presence": { "low": 0.003, "high": 0.05 },
+    "brilliance": { "low": 0.002, "high": 0.035 }
+  },
+  "dynamic_range_db": { "low": 4, "high": 14 },
+  "brightness": { "low": 2500, "high": 6000 },
+  "stereo_width": { "low": 0.1, "high": 0.45 },
+  "rms_mean": { "low": 0.08, "high": 0.3 }
+}

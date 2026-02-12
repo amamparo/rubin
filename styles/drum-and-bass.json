@@ -1,0 +1,17 @@
+{
+  "name": "drum-and-bass",
+  "description": "Fast, rolling drum & bass — deep sub-bass reese, snappy breakbeats, aggressive upper-mids, tight compression.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.01, "high": 0.12 },
+    "bass": { "low": 0.01, "high": 0.1 },
+    "low_mid": { "low": 0.004, "high": 0.055 },
+    "mid": { "low": 0.003, "high": 0.05 },
+    "upper_mid": { "low": 0.005, "high": 0.065 },
+    "presence": { "low": 0.003, "high": 0.05 },
+    "brilliance": { "low": 0.001, "high": 0.03 }
+  },
+  "dynamic_range_db": { "low": 4, "high": 14 },
+  "brightness": { "low": 2500, "high": 5500 },
+  "stereo_width": { "low": 0.08, "high": 0.35 },
+  "rms_mean": { "low": 0.07, "high": 0.28 }
+}

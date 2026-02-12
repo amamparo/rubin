@@ -5,6 +5,7 @@ from pathlib import Path
 from rubin.analyzer import AudioAnalysis
 
 STYLES_DIR = Path(__file__).parent.parent.parent / "styles"
+USER_STYLES_DIR = Path.home() / ".rubin" / "styles"
 
 
 @dataclass
@@ -72,18 +73,74 @@ class EvaluationResult:
     band_scores: dict[str, float]  # per-band score 0-100
 
 
+TRACK_ROLES = ("bass", "lead", "pad", "percussion", "texture")
+
+
+@dataclass
+class AuditionResult:
+    style: str
+    role: str  # detected or user-specified
+    fit_score: float  # 0-100
+    dominant_bands: list[str]
+    frequency_profile: dict[str, float]  # normalized energy per band (0-1)
+    issues: list[Issue]
+
+
 def load_style(name: str) -> StyleProfile:
-    path = STYLES_DIR / f"{name}.json"
-    if not path.exists():
-        raise FileNotFoundError(f"Style profile not found: {name}")
-    with open(path) as f:
-        return StyleProfile.from_dict(json.load(f))
+    # User styles take precedence over built-ins
+    user_path = USER_STYLES_DIR / f"{name}.json"
+    if user_path.exists():
+        with open(user_path) as f:
+            return StyleProfile.from_dict(json.load(f))
+    builtin_path = STYLES_DIR / f"{name}.json"
+    if builtin_path.exists():
+        with open(builtin_path) as f:
+            return StyleProfile.from_dict(json.load(f))
+    raise FileNotFoundError(f"Style profile not found: {name}")
 
 
 def list_styles() -> list[str]:
-    if not STYLES_DIR.exists():
-        return []
-    return sorted(p.stem for p in STYLES_DIR.glob("*.json"))
+    names: set[str] = set()
+    if STYLES_DIR.exists():
+        names.update(p.stem for p in STYLES_DIR.glob("*.json"))
+    if USER_STYLES_DIR.exists():
+        names.update(p.stem for p in USER_STYLES_DIR.glob("*.json"))
+    return sorted(names)
+
+
+def is_user_style(name: str) -> bool:
+    return (USER_STYLES_DIR / f"{name}.json").exists()
+
+
+def save_user_style(profile: StyleProfile) -> Path:
+    USER_STYLES_DIR.mkdir(parents=True, exist_ok=True)
+    path = USER_STYLES_DIR / f"{profile.name}.json"
+    data = _profile_to_dict(profile)
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    return path
+
+
+def delete_user_style(name: str) -> None:
+    path = USER_STYLES_DIR / f"{name}.json"
+    if not path.exists():
+        raise FileNotFoundError(f"User style not found: {name}")
+    path.unlink()
+
+
+def _profile_to_dict(profile: StyleProfile) -> dict:
+    data: dict = {"name": profile.name, "description": profile.description}
+    if profile.frequency_balance:
+        data["frequency_balance"] = {
+            band: {"low": r.low, "high": r.high}
+            for band, r in profile.frequency_balance.items()
+        }
+    for key in ("dynamic_range_db", "brightness", "stereo_width", "rms_mean"):
+        r = getattr(profile, key)
+        if r is not None:
+            data[key] = {"low": r.low, "high": r.high}
+    return data
 
 
 def evaluate(analysis: AudioAnalysis, profile: StyleProfile) -> EvaluationResult:
@@ -294,6 +351,204 @@ def evaluate(analysis: AudioAnalysis, profile: StyleProfile) -> EvaluationResult
         cohesion_score=cohesion_score,
         issues=issues,
         band_scores=band_scores,
+    )
+
+
+def audition(
+    analysis: AudioAnalysis, profile: StyleProfile, role: str | None = None
+) -> AuditionResult:
+    """Analyze an isolated track in the context of a style profile."""
+    bands = analysis.frequency_bands
+    band_map: dict[str, float] = {
+        "sub_bass": bands.sub_bass,
+        "bass": bands.bass,
+        "low_mid": bands.low_mid,
+        "mid": bands.mid,
+        "upper_mid": bands.upper_mid,
+        "presence": bands.presence,
+        "brilliance": bands.brilliance,
+    }
+
+    # Normalize energy to 0-1 for frequency profile
+    total_energy = sum(band_map.values())
+    if total_energy > 0:
+        freq_profile = {b: v / total_energy for b, v in band_map.items()}
+    else:
+        freq_profile = {b: 0.0 for b in band_map}
+
+    # Dominant bands: top bands that together account for >= 70% of energy
+    sorted_bands = sorted(freq_profile.items(), key=lambda x: x[1], reverse=True)
+    dominant: list[str] = []
+    cumulative = 0.0
+    for band_name, proportion in sorted_bands:
+        if proportion > 0:
+            dominant.append(band_name)
+            cumulative += proportion
+            if cumulative >= 0.7:
+                break
+
+    # Classify role if not provided
+    if role is None:
+        role = _classify_role(analysis, freq_profile)
+
+    # Evaluate fit: does this track's energy land in the right place
+    # for its role within this style?
+    issues: list[Issue] = []
+    fit_components: list[float] = []
+
+    # Role-band affinity: which bands should this role emphasize?
+    role_bands = _role_band_affinity(role)
+    primary_bands = role_bands["primary"]
+    avoid_bands = role_bands["avoid"]
+
+    # Score: energy in primary bands should be high
+    primary_energy = sum(freq_profile.get(b, 0) for b in primary_bands)
+    primary_score = min(100.0, primary_energy * 200)  # 50%+ = perfect
+    fit_components.append(primary_score)
+
+    # Penalty: energy in avoid bands
+    avoid_energy = sum(freq_profile.get(b, 0) for b in avoid_bands)
+    if avoid_energy > 0.15:
+        avoid_score = max(0.0, 100.0 - (avoid_energy - 0.15) * 400)
+        fit_components.append(avoid_score)
+        for b in avoid_bands:
+            if freq_profile.get(b, 0) > 0.1:
+                issues.append(
+                    Issue(
+                        category="role_conflict",
+                        severity="medium",
+                        band=b,
+                        message=(
+                            f"This {role} element has significant "
+                            f"energy in {b} ({freq_profile[b]:.0%}), "
+                            f"which may clash with other elements "
+                            f"in a {profile.name} mix."
+                        ),
+                        suggestion=_role_conflict_suggestion(role, b),
+                    )
+                )
+
+    # Check if dominant bands fall within the style's target ranges
+    for band_name in dominant:
+        target = profile.frequency_balance.get(band_name)
+        if target is None:
+            continue
+        actual = band_map[band_name]
+        if actual > target.high * 1.5:
+            issues.append(
+                Issue(
+                    category="excess_for_style",
+                    severity="low",
+                    band=band_name,
+                    message=(
+                        f"{band_name} energy ({actual:.4f}) is high "
+                        f"relative to {profile.name} targets "
+                        f"[{target.low:.4f}, {target.high:.4f}] "
+                        f"— this track may dominate that range."
+                    ),
+                    suggestion=(
+                        f"Consider taming {band_name} on this "
+                        f"track to leave room for other elements."
+                    ),
+                )
+            )
+
+    fit_score = round(
+        sum(fit_components) / len(fit_components) if fit_components else 100.0, 1
+    )
+
+    return AuditionResult(
+        style=profile.name,
+        role=role,
+        fit_score=fit_score,
+        dominant_bands=dominant,
+        frequency_profile={b: round(v, 4) for b, v in freq_profile.items()},
+        issues=issues,
+    )
+
+
+def _classify_role(analysis: AudioAnalysis, freq_profile: dict[str, float]) -> str:
+    """Classify an isolated track's role from its spectral profile."""
+    low_energy = freq_profile.get("sub_bass", 0) + freq_profile.get("bass", 0)
+    mid_energy = freq_profile.get("mid", 0) + freq_profile.get("upper_mid", 0)
+    high_energy = freq_profile.get("presence", 0) + freq_profile.get("brilliance", 0)
+
+    # Percussion: high dynamic range + presence/brilliance energy
+    if analysis.loudness.dynamic_range_db > 20 and high_energy > 0.25:
+        return "percussion"
+
+    # Texture: high spectral flatness (noise-like)
+    if analysis.spectral.flatness_mean > 0.3:
+        return "texture"
+
+    # Bass: dominant low-frequency energy
+    if low_energy > 0.5:
+        return "bass"
+
+    # Pad: broad, even distribution + wide stereo
+    band_values = list(freq_profile.values())
+    if band_values:
+        spread = max(band_values) - min(band_values)
+        if spread < 0.2 and analysis.stereo.width > 0.1:
+            return "pad"
+
+    # Lead: dominant mid/upper-mid energy
+    if mid_energy > 0.3:
+        return "lead"
+
+    return "lead"  # default fallback
+
+
+def _role_band_affinity(role: str) -> dict[str, list[str]]:
+    """Which bands a role should emphasize vs avoid."""
+    affinities = {
+        "bass": {
+            "primary": ["sub_bass", "bass"],
+            "avoid": ["upper_mid", "presence", "brilliance"],
+        },
+        "lead": {
+            "primary": ["mid", "upper_mid", "presence"],
+            "avoid": ["sub_bass"],
+        },
+        "pad": {
+            "primary": ["low_mid", "mid"],
+            "avoid": [],
+        },
+        "percussion": {
+            "primary": ["presence", "brilliance", "upper_mid"],
+            "avoid": ["sub_bass"],
+        },
+        "texture": {
+            "primary": ["mid", "presence", "brilliance"],
+            "avoid": [],
+        },
+    }
+    return affinities.get(role, {"primary": ["mid"], "avoid": []})
+
+
+def _role_conflict_suggestion(role: str, band: str) -> str:
+    suggestions = {
+        ("bass", "upper_mid"): (
+            "Apply a low-pass filter around 2-4 kHz "
+            "to keep the bass focused in the low end."
+        ),
+        ("bass", "presence"): (
+            "Roll off above 4 kHz — bass elements " "rarely need presence-range energy."
+        ),
+        ("bass", "brilliance"): (
+            "Filter out high frequencies above 6 kHz "
+            "to avoid interference with cymbals/hats."
+        ),
+        ("lead", "sub_bass"): (
+            "High-pass the lead around 80-100 Hz " "to avoid competing with the bass."
+        ),
+        ("percussion", "sub_bass"): (
+            "High-pass percussion above 60 Hz unless " "it's a kick drum."
+        ),
+    }
+    return suggestions.get(
+        (role, band),
+        f"Consider reducing {band} energy on this {role} element.",
     )
 
 

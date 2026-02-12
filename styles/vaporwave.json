@@ -1,0 +1,17 @@
+{
+  "name": "vaporwave",
+  "description": "Dreamy vaporwave — pitched-down warmth, heavy reverb, rolled-off highs, lush stereo, lo-fi dynamics.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.003, "high": 0.06 },
+    "bass": { "low": 0.008, "high": 0.09 },
+    "low_mid": { "low": 0.008, "high": 0.09 },
+    "mid": { "low": 0.005, "high": 0.065 },
+    "upper_mid": { "low": 0.002, "high": 0.03 },
+    "presence": { "low": 0.001, "high": 0.02 },
+    "brilliance": { "low": 0.0003, "high": 0.01 }
+  },
+  "dynamic_range_db": { "low": 5, "high": 16 },
+  "brightness": { "low": 800, "high": 2200 },
+  "stereo_width": { "low": 0.15, "high": 0.5 },
+  "rms_mean": { "low": 0.03, "high": 0.18 }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "industrial",
+  "description": "Aggressive industrial — distorted textures, heavy compression, harsh upper-mids, powerful low-end, narrow-to-wide stereo.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.008, "high": 0.1 },
+    "bass": { "low": 0.01, "high": 0.11 },
+    "low_mid": { "low": 0.006, "high": 0.08 },
+    "mid": { "low": 0.005, "high": 0.07 },
+    "upper_mid": { "low": 0.006, "high": 0.08 },
+    "presence": { "low": 0.004, "high": 0.06 },
+    "brilliance": { "low": 0.002, "high": 0.04 }
+  },
+  "dynamic_range_db": { "low": 3, "high": 12 },
+  "brightness": { "low": 3000, "high": 6500 },
+  "stereo_width": { "low": 0.06, "high": 0.35 },
+  "rms_mean": { "low": 0.1, "high": 0.35 }
+}

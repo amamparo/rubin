@@ -1,0 +1,17 @@
+{
+  "name": "downtempo",
+  "description": "Chill downtempo — warm sub-bass, mellow mids, soft highs, wide stereo, relaxed dynamics.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.003, "high": 0.07 },
+    "bass": { "low": 0.006, "high": 0.08 },
+    "low_mid": { "low": 0.004, "high": 0.065 },
+    "mid": { "low": 0.003, "high": 0.05 },
+    "upper_mid": { "low": 0.002, "high": 0.035 },
+    "presence": { "low": 0.001, "high": 0.025 },
+    "brilliance": { "low": 0.0005, "high": 0.018 }
+  },
+  "dynamic_range_db": { "low": 10, "high": 28 },
+  "brightness": { "low": 1200, "high": 3200 },
+  "stereo_width": { "low": 0.12, "high": 0.45 },
+  "rms_mean": { "low": 0.02, "high": 0.15 }
+}

@@ -154,20 +154,67 @@ Restart Claude Desktop after saving. You should see the Rubin tools (hammer icon
 | `compare_snapshots` | Compare two snapshots and see per-metric deltas. |
 | `get_spectral_data` | Capture audio and return the full spectral/timbral/loudness analysis. |
 | `suggest_adjustments` | Evaluate against a style and return only actionable suggestions, sorted by severity. |
-| `list_style_profiles` | List available style profiles. |
+| `audition_track` | Analyze a soloed track — classifies its role (bass, lead, pad, percussion, texture) and scores how well it fits the style. |
+| `list_style_profiles` | List available style profiles (built-in and user-created). |
 | `list_snapshots` | List saved snapshots. |
+| `create_style` | Create a new custom style profile via natural language. Saved to `~/.rubin/styles/`. |
+| `update_style` | Update an existing style's target ranges. Creates a user override for built-in styles. |
+| `delete_style` | Delete a user-created style. Built-in styles cannot be deleted. |
 
 ## Style Profiles
 
-Built-in profiles in `styles/`:
+### Built-in Profiles
 
-- **ambient** — lush, spacious, wide stereo, subdued dynamics
-- **synthpop** — punchy, bright, tight low-end, forward mids
-- **lo-fi** — warm, rolled-off highs, narrow dynamics
-- **techno** — heavy sub-bass, aggressive upper-mids, tight compression
-- **orchestral** — wide dynamic range, natural balance, spacious stereo
+16 built-in profiles covering a wide range of genres:
 
-Create your own by adding a JSON file to `styles/`. See existing profiles for the schema.
+| Profile | Character |
+|---|---|
+| ambient | Lush, spacious, wide stereo, subdued dynamics |
+| downtempo | Warm sub-bass, mellow mids, soft highs, relaxed dynamics |
+| drum-and-bass | Deep sub-bass reese, snappy breakbeats, aggressive upper-mids |
+| edm | Massive sub-bass drops, bright leads, heavy sidechain compression |
+| folk | Organic warmth, fingerpicked clarity, wide dynamics, minimal processing |
+| hip-hop | Deep 808 sub-bass, punchy kick, vocal-forward mids |
+| house | Warm four-on-the-floor kick, round bass, smooth vocals |
+| industrial | Distorted textures, heavy compression, harsh upper-mids |
+| jazz | Natural instrument clarity, wide dynamic range, gentle sparkle |
+| lo-fi | Warm, rolled-off highs, narrow dynamics |
+| orchestral | Wide dynamic range, natural balance, spacious stereo |
+| rnb | Smooth, warm lows, silky vocal mids, restrained highs |
+| rock | Full guitars, driving drums, present vocals |
+| synthpop | Punchy, bright, tight low-end, forward mids |
+| techno | Heavy sub-bass, aggressive upper-mids, tight compression |
+| vaporwave | Pitched-down warmth, heavy reverb, rolled-off highs |
+
+### Custom Styles
+
+Create your own styles through natural conversation with Claude — just describe the sound you're going for:
+
+> "Create a dreampop style with warm bass, shimmery highs, and wide stereo"
+
+Custom styles are saved to `~/.rubin/styles/` and persist across sessions. You can also update or delete them the same way.
+
+To manually create a style, add a JSON file to `~/.rubin/styles/`:
+
+```json
+{
+  "name": "my-style",
+  "description": "Description of the target sound",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.001, "high": 0.05 },
+    "bass": { "low": 0.005, "high": 0.08 },
+    "low_mid": { "low": 0.003, "high": 0.06 },
+    "mid": { "low": 0.002, "high": 0.04 },
+    "upper_mid": { "low": 0.001, "high": 0.025 },
+    "presence": { "low": 0.0005, "high": 0.02 },
+    "brilliance": { "low": 0.0005, "high": 0.015 }
+  },
+  "dynamic_range_db": { "low": 10, "high": 30 },
+  "brightness": { "low": 1000, "high": 3000 },
+  "stereo_width": { "low": 0.15, "high": 0.5 },
+  "rms_mean": { "low": 0.01, "high": 0.12 }
+}
+```
 
 ## Development
 

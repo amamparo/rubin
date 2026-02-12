@@ -6,7 +6,18 @@ from mcp.server.fastmcp import FastMCP
 
 from rubin.analyzer import analyze
 from rubin.client import AudioClient, SystemAudioClient
-from rubin.evaluator import evaluate, list_styles, load_style
+from rubin.evaluator import (
+    TRACK_ROLES,
+    Range,
+    StyleProfile,
+    audition,
+    delete_user_style,
+    evaluate,
+    is_user_style,
+    list_styles,
+    load_style,
+    save_user_style,
+)
 
 
 class AudioModule(Module):
@@ -186,15 +197,191 @@ def create_server(injector: Injector | None = None) -> FastMCP:
         )
 
     # ------------------------------------------------------------------
+    # Tool: audition_track
+    # ------------------------------------------------------------------
+    @server.tool()
+    async def audition_track(
+        style: str,
+        role: str | None = None,
+        duration: float = 5.0,
+        sample_rate: int = 44100,
+    ) -> str:
+        """Analyze an isolated/soloed track in the context of a style.
+
+        Use this when the user solos a single instrument or track in
+        their DAW. Instead of evaluating a full mix, this characterizes
+        the track's spectral footprint, classifies its role (bass, lead,
+        pad, percussion, texture), and assesses how well it fits the
+        target style.
+
+        Args:
+            style: Style profile to evaluate against.
+            role: Optional role hint — one of "bass", "lead", "pad",
+                "percussion", "texture". Auto-detected if omitted.
+            duration: Seconds of audio to capture.
+            sample_rate: Sample rate for capture.
+
+        Returns JSON with role, fit_score, dominant_bands,
+        frequency_profile, and issues.
+        """
+        if role is not None and role not in TRACK_ROLES:
+            return json.dumps(
+                {
+                    "error": (
+                        f"Invalid role '{role}'. "
+                        f"Must be one of: {', '.join(TRACK_ROLES)}"
+                    )
+                }
+            )
+        profile = load_style(style)
+        audio = _client().capture(duration, sample_rate)
+        analysis = analyze(audio, sample_rate)
+        result = audition(analysis, profile, role)
+        return json.dumps(asdict(result), indent=2)
+
+    # ------------------------------------------------------------------
     # Tool: list_style_profiles
     # ------------------------------------------------------------------
     @server.tool()
     async def list_style_profiles() -> str:
         """List all available style profiles.
 
-        Returns JSON list of style names.
+        Returns JSON list of objects with name, description, and source
+        (built-in or user).
         """
-        return json.dumps(list_styles())
+        profiles = []
+        for name in list_styles():
+            profile = load_style(name)
+            profiles.append(
+                {
+                    "name": profile.name,
+                    "description": profile.description,
+                    "source": "user" if is_user_style(name) else "built-in",
+                }
+            )
+        return json.dumps(profiles, indent=2)
+
+    # ------------------------------------------------------------------
+    # Tool: create_style
+    # ------------------------------------------------------------------
+    @server.tool()
+    async def create_style(
+        name: str,
+        description: str,
+        frequency_balance: dict[str, dict[str, float]] | None = None,
+        dynamic_range_db: dict[str, float] | None = None,
+        brightness: dict[str, float] | None = None,
+        stereo_width: dict[str, float] | None = None,
+        rms_mean: dict[str, float] | None = None,
+    ) -> str:
+        """Create a new user style profile.
+
+        Args:
+            name: Style name (e.g. "dreampop", "trap").
+            description: What this style sounds like.
+            frequency_balance: Target energy ranges per band.
+                Each band maps to {"low": float, "high": float}.
+                Bands: sub_bass, bass, low_mid, mid, upper_mid,
+                presence, brilliance.
+            dynamic_range_db: Target dynamic range {"low": dB, "high": dB}.
+            brightness: Target spectral centroid {"low": Hz, "high": Hz}.
+            stereo_width: Target stereo width {"low": 0-1, "high": 0-1}.
+            rms_mean: Target RMS level {"low": float, "high": float}.
+
+        Saves to ~/.rubin/styles/{name}.json. Returns the saved profile.
+        """
+        freq_bal = {}
+        if frequency_balance:
+            for band, r in frequency_balance.items():
+                freq_bal[band] = Range(r["low"], r["high"])
+
+        def _to_range(d: dict[str, float] | None) -> Range | None:
+            return Range(d["low"], d["high"]) if d else None
+
+        profile = StyleProfile(
+            name=name,
+            description=description,
+            frequency_balance=freq_bal,
+            dynamic_range_db=_to_range(dynamic_range_db),
+            brightness=_to_range(brightness),
+            stereo_width=_to_range(stereo_width),
+            rms_mean=_to_range(rms_mean),
+        )
+        path = save_user_style(profile)
+        return json.dumps({"status": "created", "path": str(path), "profile": name})
+
+    # ------------------------------------------------------------------
+    # Tool: update_style
+    # ------------------------------------------------------------------
+    @server.tool()
+    async def update_style(
+        name: str,
+        description: str | None = None,
+        frequency_balance: dict[str, dict[str, float]] | None = None,
+        dynamic_range_db: dict[str, float] | None = None,
+        brightness: dict[str, float] | None = None,
+        stereo_width: dict[str, float] | None = None,
+        rms_mean: dict[str, float] | None = None,
+    ) -> str:
+        """Update an existing style profile. Only user styles can be
+        updated directly; to customize a built-in style, this will
+        create a user override.
+
+        Args:
+            name: Style name to update.
+            description: New description (optional).
+            frequency_balance: Bands to update (merged with existing).
+            dynamic_range_db: New dynamic range target.
+            brightness: New brightness target.
+            stereo_width: New stereo width target.
+            rms_mean: New RMS target.
+
+        Only provided fields are changed; omitted fields keep their
+        current values.
+        """
+        try:
+            profile = load_style(name)
+        except FileNotFoundError:
+            return json.dumps({"error": f"Style '{name}' not found"})
+
+        if description is not None:
+            profile.description = description
+        if frequency_balance:
+            for band, r in frequency_balance.items():
+                profile.frequency_balance[band] = Range(r["low"], r["high"])
+        if dynamic_range_db:
+            profile.dynamic_range_db = Range(
+                dynamic_range_db["low"], dynamic_range_db["high"]
+            )
+        if brightness:
+            profile.brightness = Range(brightness["low"], brightness["high"])
+        if stereo_width:
+            profile.stereo_width = Range(stereo_width["low"], stereo_width["high"])
+        if rms_mean:
+            profile.rms_mean = Range(rms_mean["low"], rms_mean["high"])
+
+        save_user_style(profile)
+        return json.dumps({"status": "updated", "profile": name})
+
+    # ------------------------------------------------------------------
+    # Tool: delete_style
+    # ------------------------------------------------------------------
+    @server.tool()
+    async def delete_style(name: str) -> str:
+        """Delete a user style profile.
+
+        Args:
+            name: Style name to delete.
+
+        Only user-created styles can be deleted. Built-in styles cannot
+        be removed.
+        """
+        if not is_user_style(name):
+            return json.dumps(
+                {"error": f"'{name}' is a built-in style and cannot be deleted"}
+            )
+        delete_user_style(name)
+        return json.dumps({"status": "deleted", "profile": name})
 
     # ------------------------------------------------------------------
     # Tool: list_snapshots

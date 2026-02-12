@@ -1,0 +1,17 @@
+{
+  "name": "house",
+  "description": "Groovy house — warm four-on-the-floor kick, round bass, smooth vocals, airy pads, balanced stereo.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.005, "high": 0.08 },
+    "bass": { "low": 0.01, "high": 0.1 },
+    "low_mid": { "low": 0.004, "high": 0.06 },
+    "mid": { "low": 0.004, "high": 0.055 },
+    "upper_mid": { "low": 0.003, "high": 0.05 },
+    "presence": { "low": 0.002, "high": 0.04 },
+    "brilliance": { "low": 0.001, "high": 0.025 }
+  },
+  "dynamic_range_db": { "low": 6, "high": 16 },
+  "brightness": { "low": 2000, "high": 4500 },
+  "stereo_width": { "low": 0.1, "high": 0.4 },
+  "rms_mean": { "low": 0.06, "high": 0.25 }
+}
