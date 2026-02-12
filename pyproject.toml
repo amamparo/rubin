@@ -1,0 +1,44 @@
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "rubin"
+version = "0.1.0"
+description = "MCP server for audio evaluation — mix quality, timbral compatibility, and stylistic coherence."
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.26.0,<2.0.0",
+    "injector>=0.24.0,<0.25.0",
+    "librosa>=0.10.0,<1.0.0",
+    "numpy>=1.26.0,<3.0.0",
+    "sounddevice>=0.5.0,<1.0.0",
+]
+
+[project.scripts]
+rubin = "rubin.__main__:main"
+
+[[tool.poetry.packages]]
+include = "rubin"
+from = "src"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.0"
+ruff = "^0.8"
+pytest = "^8.0"
+anyio = "^4.12.1"
+pytest-anyio = "^0.0.0"
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

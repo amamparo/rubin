@@ -1,0 +1,17 @@
+{
+  "name": "lo-fi",
+  "description": "Warm, lo-fi aesthetic — rolled-off highs, emphasized low-mids, narrow dynamics, relaxed stereo image.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.002, "high": 0.05 },
+    "bass": { "low": 0.01, "high": 0.1 },
+    "low_mid": { "low": 0.008, "high": 0.09 },
+    "mid": { "low": 0.005, "high": 0.06 },
+    "upper_mid": { "low": 0.001, "high": 0.025 },
+    "presence": { "low": 0.0005, "high": 0.015 },
+    "brilliance": { "low": 0.0002, "high": 0.008 }
+  },
+  "dynamic_range_db": { "low": 4, "high": 14 },
+  "brightness": { "low": 800, "high": 2500 },
+  "stereo_width": { "low": 0.05, "high": 0.25 },
+  "rms_mean": { "low": 0.04, "high": 0.2 }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "techno",
+  "description": "Driving, heavy techno — powerful sub-bass and kick, aggressive upper-mids, tight compression, wide stereo FX.",
+  "frequency_balance": {
+    "sub_bass": { "low": 0.01, "high": 0.1 },
+    "bass": { "low": 0.015, "high": 0.12 },
+    "low_mid": { "low": 0.005, "high": 0.06 },
+    "mid": { "low": 0.003, "high": 0.05 },
+    "upper_mid": { "low": 0.004, "high": 0.06 },
+    "presence": { "low": 0.002, "high": 0.04 },
+    "brilliance": { "low": 0.001, "high": 0.025 }
+  },
+  "dynamic_range_db": { "low": 4, "high": 14 },
+  "brightness": { "low": 2500, "high": 5500 },
+  "stereo_width": { "low": 0.1, "high": 0.4 },
+  "rms_mean": { "low": 0.08, "high": 0.3 }
+}
